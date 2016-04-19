@@ -1,4 +1,4 @@
-package asciiPanel;
+package asciipanel;
 
 import java.awt.Color;
 import java.awt.Dimension;
@@ -101,22 +101,23 @@ public class AsciiPanel extends JPanel {
 
     private Image offscreenBuffer;
     private Graphics offscreenGraphics;
-    private int widthInCharacters;
-    private int heightInCharacters;
-    private int charWidth = 9;
-    private int charHeight = 16;
+    protected int widthInCharacters;//bpm change: made protected
+    protected int heightInCharacters;//bpm change: made protected
+    protected int charWidth = 9;//bpm change: made protected
+    protected int charHeight = 16;//bpm change: made protected
     private Color defaultBackgroundColor;
     private Color defaultForegroundColor;
     private int cursorX;
     private int cursorY;
-    private BufferedImage glyphSprite;
-    private BufferedImage[] glyphs;
-    private char[][] chars;
+    protected BufferedImage glyphSprite; //bpm change made protected
+    protected BufferedImage[] glyphs; //bpm change:  made protected
+    protected int[][] chars;//bpm change: made int from char and protected
     private Color[][] backgroundColors;
     private Color[][] foregroundColors;
-    private char[][] oldChars;
+    protected int[][] oldChars;//bpm change: made int from char and protected
     private Color[][] oldBackgroundColors;
     private Color[][] oldForegroundColors;
+    protected int numGlyphs;
 
     /**
      * Gets the height, in pixels, of a character.
@@ -252,10 +253,14 @@ public class AsciiPanel extends JPanel {
 
     /**
      * Class constructor specifying the width and height in characters.
+     * bpm change: added char width and char height to constructor
      * @param width
      * @param height
      */
-    public AsciiPanel(int width, int height) {
+    public AsciiPanel(int width, int height){
+        this(width, height, 9,16);
+    }
+    public AsciiPanel(int width, int height, int widthPixels, int heightPixels) {
         super();
 
         if (width < 1)
@@ -271,17 +276,18 @@ public class AsciiPanel extends JPanel {
         defaultBackgroundColor = black;
         defaultForegroundColor = white;
 
-        chars = new char[widthInCharacters][heightInCharacters];
+        chars = new int[widthInCharacters][heightInCharacters];//bpm made int
         backgroundColors = new Color[widthInCharacters][heightInCharacters];
         foregroundColors = new Color[widthInCharacters][heightInCharacters];
 
-        oldChars = new char[widthInCharacters][heightInCharacters];
+        oldChars = new int[widthInCharacters][heightInCharacters];//bpm made int
         oldBackgroundColors = new Color[widthInCharacters][heightInCharacters];
         oldForegroundColors = new Color[widthInCharacters][heightInCharacters];
 
-        glyphs = new BufferedImage[256];
+        numGlyphs=32*8;//bpm change replace the hard coded 256 everywhere
+        glyphs = new BufferedImage[numGlyphs];
         
-        loadGlyphs();
+        //loadGlyphs();//bpm change:  load the glyphs needs to be done after instantiation
         
         AsciiPanel.this.clear();
     }
@@ -312,7 +318,9 @@ public class AsciiPanel extends JPanel {
                 Color fg = foregroundColors[x][y];
 
                 LookupOp op = setColors(bg, fg);
-                BufferedImage img = op.filter(glyphs[chars[x][y]], null);
+                System.out.println("x:"+x+" y:"+y+" glyphs:"+glyphs.length+" chars:"+chars.length);
+                System.out.println("chars[x][y]:"+chars[x][y]);
+                BufferedImage img = glyphs[chars[x][y]];//brp: op.filter(glyphs[chars[x][y]], null);
                 offscreenGraphics.drawImage(img, x * charWidth, y * charHeight, null);
                 
                 oldBackgroundColors[x][y] = backgroundColors[x][y];
@@ -324,14 +332,15 @@ public class AsciiPanel extends JPanel {
         g.drawImage(offscreenBuffer,0,0,this);
     }
 
-    private void loadGlyphs() {
+    //bpm change: made public
+    public void loadGlyphs() {
         try {
             glyphSprite = ImageIO.read(AsciiPanel.class.getResource("cp437.png"));
         } catch (IOException e) {
             System.err.println("loadGlyphs(): " + e.getMessage());
         }
 
-        for (int i = 0; i < 256; i++) {
+        for (int i = 0; i < numGlyphs; i++) {
             int sx = (i % 32) * charWidth + 8;
             int sy = (i / 32) * charHeight + 8;
 
@@ -343,15 +352,16 @@ public class AsciiPanel extends JPanel {
     /**
      * Create a <code>LookupOp</code> object (lookup table) mapping the original 
      * pixels to the background and foreground colors, respectively. 
+     * bpm change: made protected
      * @param bgColor the background color
      * @param fgColor the foreground color
      * @return the <code>LookupOp</code> object (lookup table)
      */
-    private LookupOp setColors(Color bgColor, Color fgColor) {
-        short[] a = new short[256];
-        short[] r = new short[256];
-        short[] g = new short[256];
-        short[] b = new short[256];
+    protected LookupOp setColors(Color bgColor, Color fgColor) {
+        short[] a = new short[numGlyphs];
+        short[] r = new short[numGlyphs];
+        short[] g = new short[numGlyphs];
+        short[] b = new short[numGlyphs];
 
         byte bgr = (byte) (bgColor.getRed());
         byte bgg = (byte) (bgColor.getGreen());
@@ -361,7 +371,7 @@ public class AsciiPanel extends JPanel {
         byte fgg = (byte) (fgColor.getGreen());
         byte fgb = (byte) (fgColor.getBlue());
 
-        for (int i = 0; i < 256; i++) {
+        for (int i = 0; i < numGlyphs; i++) {
             if (i == 0) {
                 a[i] = (byte) 255;
                 r[i] = bgr;
@@ -833,7 +843,7 @@ public class AsciiPanel extends JPanel {
     		if (x < 0 || y < 0 || x >= widthInCharacters || y >= heightInCharacters)
     			continue;
     		
-    		data.character = chars[x][y];
+    		data.character = (char)chars[x][y]; //bpm added cast
     		data.foregroundColor = foregroundColors[x][y];
     		data.backgroundColor = backgroundColors[x][y];
     		

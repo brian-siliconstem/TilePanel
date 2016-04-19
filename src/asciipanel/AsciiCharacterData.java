@@ -1,4 +1,4 @@
-package asciiPanel;
+package asciipanel;
 
 import java.awt.Color;
 
