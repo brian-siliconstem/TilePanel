@@ -52,7 +52,7 @@ public class TilePanel extends AsciiPanel implements KeyListener {
         charWidth=tileWidth; //how large each tile is
         charHeight=tileHeight;
         //change glyphs from default 256 to actual number
-        numGlyphs=widthInCharacters*heightInCharacters;
+        numGlyphs=glyphTilesX*glyphTilesy;
         glyphs=new BufferedImage[numGlyphs];
         glyphNames=new String[numGlyphs];
         
