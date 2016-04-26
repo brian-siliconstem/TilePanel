@@ -17,6 +17,8 @@ import java.io.FileNotFoundException;
 import java.util.concurrent.TimeUnit;
 import java.awt.event.KeyListener;
 import java.awt.event.KeyEvent;
+import java.net.URL;
+
 
 /**
  *
@@ -29,20 +31,37 @@ public class TilePanel extends AsciiPanel implements KeyListener {
     protected int paddingY;
     protected int glyphTilesX;
     protected int glyphTilesY;
-    protected String tileFilename;
-    protected String glyphNamesFilename;
+    protected String tileFilename="WastelandTiles.png";
+    protected String glyphNamesFilename="WastelandTiles.txt";
     protected String[] glyphNames;
+    
+    protected boolean debug=false;
     
     public TilePanel(int tilesX, int tilexY)
     {
-        this(tilesX,tilexY,"WastelandTiles.png","WastelandTiles.txt",14,4,4,4,16,10,32,32);
+        this(tilesX,tilexY,null,null,24,14,4,4,16,10,32,32);
     }
-    public TilePanel(int tilesX, int tilesY,String tileFile,String glyphNamesFile,int sX, int sY, int pX, int pY, int gTilesX, int gTilesY, int tileWidth, int tileHeight){
+    public TilePanel(int tilesX, int tilexY,BufferedImage sprite,String[] spriteNames,int gTilesX,int gTilesY,int tileWidth,int tileHeight)
+    {
+        this(tilesX,tilexY,sprite,spriteNames,0,0,0,0,gTilesX,gTilesY,tileWidth,tileHeight);
+    }
+    public TilePanel(int tilesX, int tilesY,BufferedImage sprite, String[] spriteLabels, int sX, int sY, int pX, int pY, int gTilesX, int gTilesY, int tileWidth, int tileHeight){
         super();
+        BufferedImage loadedSprite=sprite;
+        String[] loadedSpriteLabels=spriteLabels;
+        if (sprite==null){
+            URL spriteURL= TilePanel.class.getResource(tileFilename);
+            loadedSprite=Utilities.loadBufferedImage(spriteURL);
+        }
+        if (spriteLabels==null){
+            URL spriteNamesURL= TilePanel.class.getResource(glyphNamesFilename);
+            loadedSpriteLabels=Utilities.loadCSVToArray(spriteNamesURL);
+        }
+        glyphSprite=loadedSprite;//save the sprite, we will cut it up into pieces later
         glyphTilesX=gTilesX;//dimensions of the glyph image in tiles
         glyphTilesY=gTilesY;
-        tileFilename=tileFile;//filw with the glyph image
-        glyphNamesFilename=glyphNamesFile;
+        //tileFilename=tileFile;//filw with the glyph image
+        //glyphNamesFilename=glyphNamesFile;
         startX=sX;//where the tiles start in the image
         startY=sY;
         paddingX=pX;//padding between tiles in the glyph image
@@ -54,7 +73,7 @@ public class TilePanel extends AsciiPanel implements KeyListener {
         //change glyphs from default 256 to actual number
         numGlyphs=glyphTilesX*glyphTilesY;
         glyphs=new BufferedImage[numGlyphs];
-        glyphNames=new String[numGlyphs];
+        glyphNames=loadedSpriteLabels;
         
     }
     public int getWidthPixels(){
@@ -73,47 +92,24 @@ public class TilePanel extends AsciiPanel implements KeyListener {
         loadGlyphs();
         loadGlyphNames();
     }
-            
-    
-    protected void loadGlyphNames(){
-        BufferedReader br=null;
+    public void loadGlyphNames(){
+        URL spriteNamesURL= TilePanel.class.getResource(glyphNamesFilename);
+        glyphNames=Utilities.loadCSVToArray(spriteNamesURL);
+    }
+    public void loadGlyphs(){
+        BufferedImage sprite=null;
         try {
-            String line="";
-            String separator=",";
-            StringBuilder completeFile=new StringBuilder();
-            File file = new File(TilePanel.class.getResource(glyphNamesFilename).getFile());
-            br = new BufferedReader(new FileReader(file)); 
-            while ((line = br.readLine()) != null) {
-                completeFile.append(line+separator);
-            }
-            String[] tileNames = completeFile.toString().split(separator);
-
-
-	} catch (FileNotFoundException e) {
-		e.printStackTrace();
-	} catch (IOException e) {
-		e.printStackTrace();
-	} finally {
-		if (br != null) {
-			try {
-				br.close();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
-	}
-
-    } 
-     public void loadGlyphs() {
-        try {
-            glyphSprite = ImageIO.read(TilePanel.class.getResource(tileFilename));
+            sprite = ImageIO.read(TilePanel.class.getResource(tileFilename));
         } catch (IOException e) {
             System.err.println("loadGlyphs(): " + e.getMessage());
         }
-
+        if(sprite != null) loadGlyphs(sprite);
+        else System.err.println("loadGlyphs(): sprite is null!");
+    }
+     public void loadGlyphs(BufferedImage sprite) {
         for (int i = 0; i < this.numGlyphs; i++) {
-            int sx = startX+(i % this.glyphTilesX) * (charWidth+paddingX) + this.glyphTilesY;
-            int sy = startY+(i / this.glyphTilesX) * (charHeight+paddingY) + this.glyphTilesY;
+            int sx = startX+(i % this.glyphTilesX) * (charWidth+paddingX) ;
+            int sy = startY+(i / this.glyphTilesX) * (charHeight+paddingY) ;
 
             System.out.println("sx:"+sx+" sy:"+sy);
             glyphs[i] = new BufferedImage(charWidth, charHeight, BufferedImage.TYPE_INT_ARGB);
@@ -121,7 +117,7 @@ public class TilePanel extends AsciiPanel implements KeyListener {
         }
     }
      
-     protected LookupOp setColors(Color bgColor, Color fgColor) {
+    /* protected LookupOp setColors(Color bgColor, Color fgColor) {
         short[] a = new short[this.numGlyphs];
         short[] r = new short[this.numGlyphs];
         short[] g = new short[this.numGlyphs];
@@ -152,7 +148,20 @@ public class TilePanel extends AsciiPanel implements KeyListener {
         short[][] table = {r, g, b, a};
         return new LookupOp(new ShortLookupTable(0, table), null);
     }
-     
+     */
+     public int getTileByName(String tileName){
+         //loop through the names to find a match
+         int nameIndex=0;
+         while(nameIndex<glyphNames.length&&!glyphNames[nameIndex].equalsIgnoreCase(tileName)){
+             nameIndex++;
+         }
+         if (nameIndex>glyphNames.length) nameIndex=-1;//return -1 if we cound;t find it, this should cause an error elsewhere
+         //return the index of the matching glyph
+         return nameIndex;
+     }
+     public int getGlyph(int x, int y){
+         return chars[x][y];
+     }
     public TilePanel write(int glyphNum,int x, int y){
         if (glyphNum < 0 || glyphNum >= glyphs.length)
             throw new IllegalArgumentException("glyphNum " + glyphNum + " must be within range [0," + glyphs.length + "]." );
