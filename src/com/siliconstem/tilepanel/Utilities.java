@@ -30,7 +30,7 @@ public class Utilities {
             File file = new File(url.getFile());
             br = new BufferedReader(new FileReader(file)); 
             while ((line = br.readLine()) != null) {
-                completeFile.append(line+separator);
+                completeFile.append(line);
             }
             tileNames = completeFile.toString().split(separator);
 
